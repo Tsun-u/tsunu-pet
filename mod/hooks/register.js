@@ -41,7 +41,9 @@ const rasters = new Map()
 async function terminalShowsImages($) {
   if ((await $.env.get('TSUNU_KITTY_PLACEHOLDERS')) === '1') return true
   if ((await $.env.get('OS')) === 'Windows_NT') return false
-  return /kitty|ghostty/i.test((await $.env.get('TERM_PROGRAM')) || '')
+  // kitty 不設 TERM_PROGRAM，只能從 TERM（xterm-kitty）認出來；Ghostty 兩個都設。
+  const terminalNames = [await $.env.get('TERM_PROGRAM'), await $.env.get('TERM')]
+  return terminalNames.some((name) => /kitty|ghostty/i.test(name || ''))
 }
 
 async function loadRaster($, columns) {
