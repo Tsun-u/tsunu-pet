@@ -1,0 +1,109 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-15
+            target: x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+
+    runs-on: ${{ matrix.platform }}
+
+    defaults:
+      run:
+        working-directory: window
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xdg-utils
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: window/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: window/src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      # 從 tag 同步版本號到三個檔案
+      - name: Sync version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            conf.version = '$VERSION';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            let toml = fs.readFileSync('src-tauri/Cargo.toml', 'utf8');
+            toml = toml.replace(/^version = \".*\"/m, 'version = \"$VERSION\"');
+            fs.writeFileSync('src-tauri/Cargo.toml', toml);
+          "
+          echo "Version synced to: $VERSION"
+
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: window
+          # 推 v* tag 時建草稿 release；手動執行只打包，安裝檔放在這次 run 的 artifacts。
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('Tsunu Pet {0}', github.ref_name) || '' }}
+          uploadWorkflowArtifacts: true
+          releaseBody: |
+            ## Tsunu Pet
+
+            桌面總機小阿宇＋Claude Code mod。Desktop switchboard pet + Claude Code mod.
+
+            請先安裝 [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)（v2.1.287 以上）。
+            Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) v2.1.287 or later.
+
+            - Windows: `.exe` (NSIS) / `.msi`
+            - macOS: `.dmg`
+            - Linux: `.AppImage` / `.deb` / `.rpm`
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}

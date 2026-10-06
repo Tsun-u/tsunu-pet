@@ -1,0 +1,6 @@
+{
+  "name": "tsunu-avatar",
+  "version": "0.1.0",
+  "description": "阿宇的立繪跟著 Claude Code 的狀態換圖，並把狀態送給桌面小視窗。",
+  "author": { "name": "Tsun-u" }
+}
