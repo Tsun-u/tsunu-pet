@@ -22,7 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "Tsunu Pet $GITHUB_REF_NAME" --notes-file - <<'NOTES'
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases"             -f tag_name="$GITHUB_REF_NAME" -f name="Tsunu Pet $GITHUB_REF_NAME" -F draft=true             -f body="$(cat <<'NOTES'
           ## Tsunu Pet
 
           桌面總機小阿宇＋Claude Code mod。Desktop switchboard pet + Claude Code mod.
@@ -34,7 +34,7 @@ jobs:
           - macOS: `.dmg`
           - Linux: `.AppImage` / `.deb` / `.rpm`
           NOTES
-          echo "release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "map(select(.tag_name == \"$GITHUB_REF_NAME\" and .draft)) | first | .id")" >> "$GITHUB_OUTPUT"
+          )" --jq '"release_id=\(.id)"' >> "$GITHUB_OUTPUT"
 
   build:
     needs: create-release
@@ -121,4 +121,6 @@ jobs:
           # 推 v* tag 時上傳到 create-release 建好的草稿；手動執行只打包，安裝檔放在這次 run 的 artifacts。
           releaseId: ${{ needs.create-release.outputs.release_id }}
           uploadWorkflowArtifacts: true
+          # tauri-action v1 預設 releaseDraft 是 false，會把上傳到的 release 直接發佈；明寫成草稿，發佈留給人按。
+          releaseDraft: true
           args: --target ${{ matrix.target }}
