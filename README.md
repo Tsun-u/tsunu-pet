@@ -72,6 +72,10 @@ mod 讀兩個環境變數，方便別的程式（例如 [Tsunu-Alive-lite](https
 - **Windows**：一般終端機都會畫字元版。想看 PNG，需要支援 kitty Unicode 佔位字元的終端機，並設定環境變數 `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1`、`TSUNU_KITTY_PLACEHOLDERS=1`（例如自行編譯含 [wezterm#7924](https://github.com/wez/wezterm/pull/7924) 的 WezTerm，搭配 1.22 以上的 ConPTY）。
 - 側邊欄要終端機至少 144 欄寬才會自動打開。
 
+**已知限制**
+
+- **從 agents view（`claude agents`）開的背景 session 一律畫字元版**，即使你是用 kitty 或 Ghostty 接上去看。背景 session 跑在 Claude Code 常駐程式的虛擬終端機裡（`TERM=xterm-256color`），mod 在那一端讀不到你實際使用的終端機。想看 PNG，請在 kitty 或 Ghostty 裡直接開前景 session。
+
 ### 換成自己的角色
 
 | 要換的東西 | 位置 | 說明 |
@@ -178,6 +182,10 @@ The mod reads two environment variables so other programs (for example [Tsunu-Al
 - **Other terminals**: a CGA-style four-color half-block portrait, like an early PC screen.
 - **Windows**: regular terminals get the character-art version. For PNG you need a terminal that supports kitty Unicode placeholders, plus `CLAUDE_CODE_FORCE_TERMINAL_IMAGES=1` and `TSUNU_KITTY_PLACEHOLDERS=1` (for example, WezTerm built with [wezterm#7924](https://github.com/wez/wezterm/pull/7924) and ConPTY 1.22 or later).
 - The side pane opens automatically only when the terminal is at least 144 columns wide.
+
+**Known limitations**
+
+- **Background sessions started from the agents view (`claude agents`) always get the character-art portrait**, even when you attach from kitty or Ghostty. They run inside the Claude Code daemon's virtual terminal (`TERM=xterm-256color`), so the mod cannot see the terminal you are actually using. For PNG, start a foreground session directly in kitty or Ghostty.
 
 ### Use your own character
 
