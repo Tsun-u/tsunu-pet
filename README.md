@@ -58,6 +58,13 @@
 
 `terminal` 是開終端機的指令，`{cwd}` 會換成工作目錄，後面接上 `claude` 和它的參數。
 
+### 給其他程式接狀態
+
+mod 讀兩個環境變數，方便別的程式（例如 [Tsunu-Alive-lite](https://github.com/wuguofish/Tsunu-Alive-lite)）用它開 session：
+
+- `TSUNU_STATE_URL`：除了桌面小視窗，也把狀態 POST 到這個網址。內容是 JSON：`{ sessionId, cwd, state, detail, at }`，`state` 是 `idle`／`thinking`／`working`／`asking`／`error`／`complete`，session 結束時送 `ended`。
+- `TSUNU_PANE=0`：不開側邊欄（宿主程式自己有立繪時用）。
+
 ### 終端機裡的立繪：PNG 還是字元畫
 
 - **kitty、Ghostty**：顯示 PNG 立繪（kitty 圖形協定）。
@@ -157,6 +164,13 @@ To use another terminal or a different mod location, put a `config.json` in the 
 ```
 
 `terminal` is the command that opens a terminal; `{cwd}` is replaced with the working directory, and `claude` plus its arguments are appended.
+
+### Feeding state to other programs
+
+The mod reads two environment variables so other programs (for example [Tsunu-Alive-lite](https://github.com/wuguofish/Tsunu-Alive-lite)) can start sessions with it:
+
+- `TSUNU_STATE_URL`: also POST state to this URL, in addition to the desktop window. The body is JSON `{ sessionId, cwd, state, detail, at }`; `state` is `idle`/`thinking`/`working`/`asking`/`error`/`complete`, and `ended` when the session exits.
+- `TSUNU_PANE=0`: don't open the side pane (for hosts that draw their own portrait).
 
 ### Terminal portrait: PNG or character art
 

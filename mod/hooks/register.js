@@ -32,6 +32,8 @@ let state = 'idle'
 let detail = ''
 let backToIdle = null
 let showsPortraitImage = false
+// 狀態送往哪些地方：桌面總機，加上啟動這個 session 的程式用 TSUNU_STATE_URL 指定的收件位址。
+const reportUrls = [SWITCHBOARD_URL]
 const rasters = new Map()
 
 // Image 要靠 kitty 圖形協定的 Unicode 佔位字元定位，目前只有 kitty 和 Ghostty 支援；
@@ -61,25 +63,28 @@ function setState($, next, nextDetail = '') {
   report($)
 }
 
-// 送出後不等回應：總機沒開時 fetch 會失敗，不能拖慢 hook。
+// 送出後不等回應：收件端沒開時 fetch 會失敗，不能拖慢 hook。
 function report($) {
   const sent = state
   const sentDetail = detail
-  Promise.all([$.session.id(), $.session.cwd()])
-    .then(([sessionId, cwd]) =>
-      $.http.fetch(SWITCHBOARD_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ sessionId, cwd, state: sent, detail: sentDetail, at: Date.now() }),
-      }),
-    )
-    .catch((err) => $.ui.log('tsunu-avatar: 送不到總機 ' + err, { to: 'debug' }))
+  Promise.all([$.session.id(), $.session.cwd()]).then(([sessionId, cwd]) => {
+    const body = JSON.stringify({ sessionId, cwd, state: sent, detail: sentDetail, at: Date.now() })
+    for (const url of reportUrls) {
+      $.http.fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body })
+        .catch((err) => $.ui.log('tsunu-avatar: 送不到 ' + url + ' ' + err, { to: 'debug' }))
+    }
+  })
 }
 
 export function register(on) {
   on('session.start', async ($, e, next) => {
-    showsPortraitImage = await terminalShowsImages($).catch(() => false)
-    await $.ui.open({ id: PANE, title: CHARACTER, columns: 42 })
+    const extraUrl = await $.env.get('TSUNU_STATE_URL')
+    if (extraUrl) reportUrls.push(extraUrl)
+    // 宿主程式自己有立繪（例如 tsunu-alive-lite）時用 TSUNU_PANE=0 關掉側邊欄。
+    if ((await $.env.get('TSUNU_PANE')) !== '0') {
+      showsPortraitImage = await terminalShowsImages($).catch(() => false)
+      await $.ui.open({ id: PANE, title: CHARACTER, columns: 42 })
+    }
     setState($, 'idle')
     return next(e)
   })
