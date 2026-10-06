@@ -10,7 +10,36 @@ permissions:
   contents: write
 
 jobs:
+  # 先建好唯一一份草稿 release，四個打包 job 都上傳到同一份。
+  # 不這樣做的話，各 job 會同時各建一份，結果出現重複的 release。
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --title "Tsunu Pet $GITHUB_REF_NAME" --notes-file - <<'NOTES'
+          ## Tsunu Pet
+
+          桌面總機小阿宇＋Claude Code mod。Desktop switchboard pet + Claude Code mod.
+
+          請先安裝 [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)（v2.1.287 以上）。
+          Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) v2.1.287 or later.
+
+          - Windows: `.exe` (NSIS) / `.msi`
+          - macOS: `.dmg`
+          - Linux: `.AppImage` / `.deb` / `.rpm`
+          NOTES
+          echo "release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq "map(select(.tag_name == \"$GITHUB_REF_NAME\" and .draft)) | first | .id")" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: create-release
+    # 手動執行時沒有 create-release（被略過），打包照樣進行。
+    if: ${{ !failure() && !cancelled() }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,21 +118,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: window
-          # 推 v* tag 時建草稿 release；手動執行只打包，安裝檔放在這次 run 的 artifacts。
-          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('Tsunu Pet {0}', github.ref_name) || '' }}
+          # 推 v* tag 時上傳到 create-release 建好的草稿；手動執行只打包，安裝檔放在這次 run 的 artifacts。
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           uploadWorkflowArtifacts: true
-          releaseBody: |
-            ## Tsunu Pet
-
-            桌面總機小阿宇＋Claude Code mod。Desktop switchboard pet + Claude Code mod.
-
-            請先安裝 [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)（v2.1.287 以上）。
-            Requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) v2.1.287 or later.
-
-            - Windows: `.exe` (NSIS) / `.msi`
-            - macOS: `.dmg`
-            - Linux: `.AppImage` / `.deb` / `.rpm`
-          releaseDraft: true
-          prerelease: false
           args: --target ${{ matrix.target }}
