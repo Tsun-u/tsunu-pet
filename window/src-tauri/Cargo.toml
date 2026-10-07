@@ -1,6 +1,6 @@
 [package]
 name = "tsunu-pet"
-version = "0.1.1"
+version = "0.1.2"
 description = "Desktop switchboard pet for Claude Code sessions"
 authors = ["Tsun-u", "ATone"]
 edition = "2021"
