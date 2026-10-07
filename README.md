@@ -74,7 +74,7 @@ mod 讀兩個環境變數，方便別的程式（例如 [Tsunu-Alive-lite](https
 
 **已知限制**
 
-- **從 agents view（`claude agents`）開的背景 session 一律畫字元版**，即使你是用 kitty 或 Ghostty 接上去看。背景 session 跑在 Claude Code 常駐程式的虛擬終端機裡（`TERM=xterm-256color`），mod 在那一端讀不到你實際使用的終端機。想看 PNG，請在 kitty 或 Ghostty 裡直接開前景 session。
+- **從 agents view（`claude agents`）開的背景 session 一律畫字元版**，即使你是用 kitty 或 Ghostty 接上去看。背景 session 跑在 Claude Code 常駐程式的虛擬終端機裡，圖片穿不過去；它的 `TERM` 繼承自啟動常駐程式的終端機，所以 mod 改用 `CLAUDE_CODE_SESSION_KIND=bg` 判斷。想看 PNG，請在 kitty 或 Ghostty 裡直接開前景 session。
 
 ### 換成自己的角色
 
@@ -185,7 +185,7 @@ The mod reads two environment variables so other programs (for example [Tsunu-Al
 
 **Known limitations**
 
-- **Background sessions started from the agents view (`claude agents`) always get the character-art portrait**, even when you attach from kitty or Ghostty. They run inside the Claude Code daemon's virtual terminal (`TERM=xterm-256color`), so the mod cannot see the terminal you are actually using. For PNG, start a foreground session directly in kitty or Ghostty.
+- **Background sessions started from the agents view (`claude agents`) always get the character-art portrait**, even when you attach from kitty or Ghostty. They run inside the Claude Code daemon's virtual terminal, which images cannot pass through; their `TERM` is inherited from whatever terminal launched the daemon, so the mod checks `CLAUDE_CODE_SESSION_KIND=bg` instead. For PNG, start a foreground session directly in kitty or Ghostty.
 
 ### Use your own character
 

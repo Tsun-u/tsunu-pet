@@ -39,6 +39,9 @@ const rasters = new Map()
 // Image 要靠 kitty 圖形協定的 Unicode 佔位字元定位，目前只有 kitty 和 Ghostty 支援；
 // Windows 上要用自己編譯的 WezTerm（PR #7924），它的設定會帶 TSUNU_KITTY_PLACEHOLDERS=1。
 async function terminalShowsImages($) {
+  // agents view 開的背景 session 跑在常駐程式的虛擬終端機裡，圖片穿不過去；
+  // 它的 TERM 繼承自啟動常駐程式的終端機（可能是 kitty），不能拿來判斷。
+  if ((await $.env.get('CLAUDE_CODE_SESSION_KIND')) === 'bg') return false
   if ((await $.env.get('TSUNU_KITTY_PLACEHOLDERS')) === '1') return true
   if ((await $.env.get('OS')) === 'Windows_NT') return false
   // kitty 不設 TERM_PROGRAM，只能從 TERM（xterm-kitty）認出來；Ghostty 兩個都設。
