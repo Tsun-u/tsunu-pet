@@ -35,6 +35,7 @@ let showsPortraitImage = false
 // 狀態送往哪些地方：桌面總機，加上啟動這個 session 的程式用 TSUNU_STATE_URL 指定的收件位址。
 const reportUrls = [SWITCHBOARD_URL]
 const rasters = new Map()
+const portraitSvgs = new Map()
 
 // Image 要靠 kitty 圖形協定的 Unicode 佔位字元定位，目前只有 kitty 和 Ghostty 支援；
 // Windows 上要用自己編譯的 WezTerm（PR #7924），它的設定會帶 TSUNU_KITTY_PLACEHOLDERS=1。
@@ -55,6 +56,14 @@ async function loadRaster($, columns) {
     rasters.set(columns, JSON.parse(text))
   }
   return rasters.get(columns)
+}
+
+// 桌面版、編輯器等遠端畫面沒有 Image，只能畫 Svg；立繪預先包成內嵌 WebP 的 SVG（dev/build-svgs.py 產生）。
+async function loadPortraitSvg($, name) {
+  if (!portraitSvgs.has(name)) {
+    portraitSvgs.set(name, await $.fs.read($.plugin.root + '/assets/svg/' + name + '.svg'))
+  }
+  return portraitSvgs.get(name)
 }
 
 function setState($, next, nextDetail = '') {
@@ -135,7 +144,12 @@ export function register(on) {
     const { Box, Text, Image, Raster } = $.ui.resolve(e)
     const caption = LABELS[state] + (detail ? '：' + detail : '')
     if (e.surface !== 'terminal') {
-      return Text({ children: [CHARACTER + ' ' + caption] })
+      const { Svg } = $.ui.resolve(e)
+      const label = Text({ children: [CHARACTER + ' ' + caption] })
+      if (!Svg) return label
+      const name = state in PORTRAITS ? state : 'idle'
+      const portrait = Svg({ source: await loadPortraitSvg($, name), alt: CHARACTER + ' ' + LABELS[name], width: 240 })
+      return Box({ flexDirection: 'column', alignItems: 'center', children: [portrait, label] })
     }
     const width = RASTER_WIDTHS.find((w) => w <= e.props.bodyColumns) || RASTER_WIDTHS[RASTER_WIDTHS.length - 1]
     const portrait = showsPortraitImage
